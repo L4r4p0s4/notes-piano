@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Notes Piano">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+  <title>Notes Piano</title>
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff;
+      --bg2: #f5f5f3;
+      --bg3: #eeede8;
+      --text: #1a1a1a;
+      --text2: #666660;
+      --border: rgba(0,0,0,0.12);
+      --green-bg: #EAF3DE;
+      --green-border: #639922;
+      --green-text: #27500A;
+      --red-bg: #FCEBEB;
+      --red-border: #A32D2D;
+      --red-text: #501313;
+      --accent: #1D9E75;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1e;
+        --bg2: #2c2c2e;
+        --bg3: #3a3a3c;
+        --text: #f2f2f7;
+        --text2: #98989f;
+        --border: rgba(255,255,255,0.12);
+        --green-bg: #1a3010;
+        --green-border: #4a8020;
+        --green-text: #a0d060;
+        --red-bg: #3a1010;
+        --red-border: #902020;
+        --red-text: #f08080;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.25rem 0.5rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    main {
+      flex: 1;
+      padding: 0.75rem 1rem 1.5rem;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 0.6rem 0.5rem;
+      text-align: center;
+    }
+    .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+    .stat-val { font-size: 22px; font-weight: 600; }
+    .stat-val.green { color: #3B6D11; }
+    .stat-val.red { color: #A32D2D; }
+    @media (prefers-color-scheme: dark) {
+      .stat-val.green { color: #7dc040; }
+      .stat-val.red { color: #f07070; }
+    }
+
+    /* Progress */
+    .progress-wrap {
+      height: 5px;
+      background: var(--bg3);
+      border-radius: 3px;
+      margin-bottom: 1rem;
+    }
+    .progress-fill {
+      height: 5px;
+      border-radius: 3px;
+      background: var(--accent);
+      transition: width 0.3s;
+    }
+
+    /* Clef toggle */
+    .clef-toggle {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .clef-toggle button {
+      font-size: 13px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .clef-toggle button.active {
+      background: #d4f0e4;
+      border-color: #0F6E56;
+      color: #085041;
+      font-weight: 500;
+    }
+    @media (prefers-color-scheme: dark) {
+      .clef-toggle button.active {
+        background: #0a3020;
+        border-color: #1D9E75;
+        color: #5dcba5;
+      }
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+    }
+    .note-label {
+      font-size: 13px;
+      color: var(--text2);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .staff-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 0.25rem 0 0.5rem;
+    }
+    .staff-wrap svg { max-width: 100%; }
+
+    .feedback {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 500;
+      min-height: 22px;
+      margin: 0.4rem 0;
+    }
+    .feedback.ok { color: var(--green-text); }
+    .feedback.ko { color: var(--red-text); }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 0.75rem;
+    }
+    .ans-btn {
+      padding: 0.65rem 0.2rem;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ans-btn:active { transform: scale(0.96); }
+    .ans-btn.correct { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+    .ans-btn.wrong   { background: var(--red-bg);   border-color: var(--red-border);   color: var(--red-text); }
+
+    .reset-notice {
+      font-size: 12px;
+      color: var(--text2);
+      text-align: center;
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    /* Result */
+    .result-box { text-align: center; padding: 1.5rem 0.5rem; }
+    .result-box h2 { font-size: 20px; font-weight: 600; margin-bottom: 1rem; }
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 8px;
+      max-width: 300px;
+      margin: 0 auto 1rem;
+    }
+    .result-note {
+      font-size: 14px;
+      color: var(--text2);
+      margin-bottom: 1.5rem;
+    }
+    #restart-btn {
+      font-size: 16px;
+      font-weight: 500;
+      padding: 0.75rem 2.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #restart-btn:active { transform: scale(0.97); }
+
+    /* Install banner */
+    #install-banner {
+      display: none;
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text2);
+      align-items: center;
+      gap: 10px;
+    }
+    #install-banner span { flex: 1; }
+    #install-btn {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    #dismiss-banner {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 2px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Notes al piano</h1>
+  </header>
+  <main>
+    <div id="install-banner">
+      <span>Instal·la l'app per accés ràpid</span>
+      <button id="install-btn">Instal·lar</button>
+      <button id="dismiss-banner">×</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Encerts</div><div class="stat-val green" id="s-correct">0</div></div>
+      <div class="stat"><div class="stat-label">Errors</div><div class="stat-val red" id="s-wrong">0</div></div>
+      <div class="stat"><div class="stat-label">Temps</div><div class="stat-val" id="s-time">0s</div></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+    <div id="main-area"></div>
+  </main>
+
+  <script>
+    const SERIES = 10;
+    const TREBLE = [
+      {name:'Do4',display:'Do',vex:'c/4',clef:'treble'},
+      {name:'Re4',display:'Re',vex:'d/4',clef:'treble'},
+      {name:'Mi4',display:'Mi',vex:'e/4',clef:'treble'},
+      {name:'Fa4',display:'Fa',vex:'f/4',clef:'treble'},
+      {name:'Sol4',display:'Sol',vex:'g/4',clef:'treble'},
+      {name:'La4',display:'La',vex:'a/4',clef:'treble'},
+      {name:'Si4',display:'Si',vex:'b/4',clef:'treble'},
+      {name:'Do5',display:'Do',vex:'c/5',clef:'treble'},
+      {name:'Re5',display:'Re',vex:'d/5',clef:'treble'},
+      {name:'Mi5',display:'Mi',vex:'e/5',clef:'treble'},
+      {name:'Fa5',display:'Fa',vex:'f/5',clef:'treble'},
+      {name:'Sol5',display:'Sol',vex:'g/5',clef:'treble'},
+    ];
+    const BASS = [
+      {name:'Mi2',display:'Mi',vex:'e/2',clef:'bass'},
+      {name:'Fa2',display:'Fa',vex:'f/2',clef:'bass'},
+      {name:'Sol2',display:'Sol',vex:'g/2',clef:'bass'},
+      {name:'La2',display:'La',vex:'a/2',clef:'bass'},
+      {name:'Si2',display:'Si',vex:'b/2',clef:'bass'},
+      {name:'Do3',display:'Do',vex:'c/3',clef:'bass'},
+      {name:'Re3',display:'Re',vex:'d/3',clef:'bass'},
+      {name:'Mi3',display:'Mi',vex:'e/3',clef:'bass'},
+      {name:'Fa3',display:'Fa',vex:'f/3',clef:'bass'},
+      {name:'Sol3',display:'Sol',vex:'g/3',clef:'bass'},
+      {name:'La3',display:'La',vex:'a/3',clef:'bass'},
+      {name:'Si3',display:'Si',vex:'b/3',clef:'bass'},
+    ];
+    const NOTE_NAMES = ['Do','Re','Mi','Fa','Sol','La','Si'];
+
+    let state = {mode:'treble',series:[],idx:0,correct:0,wrong:0,startTime:null,answered:false,timerInterval:null,elapsed:0};
+
+    function getPool(){if(state.mode==='treble')return TREBLE;if(state.mode==='bass')return BASS;return[...TREBLE,...BASS];}
+    function buildSeries(){const pool=getPool(),s=[];for(let i=0;i<SERIES;i++){let n;do{n=pool[Math.floor(Math.random()*pool.length)];}while(s.length>0&&s[s.length-1].name===n.name);s.push(n);}return s;}
+    function startTimer(){state.startTime=Date.now()-state.elapsed*1000;clearInterval(state.timerInterval);state.timerInterval=setInterval(()=>{state.elapsed=Math.round((Date.now()-state.startTime)/1000);const el=document.getElementById('s-time');if(el)el.textContent=state.elapsed+'s';},500);}
+    function stopTimer(){clearInterval(state.timerInterval);}
+    function shuffleAnswers(c){const p=NOTE_NAMES.filter(n=>n!==c.display),w=[];while(w.length<3){const x=p[Math.floor(Math.random()*p.length)];if(!w.includes(x))w.push(x);}const o=[c.display,...w];for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return o;}
+
+    function drawVex(note) {
+      const div = document.getElementById('vex-div');
+      if (!div || typeof Vex === 'undefined') return;
+      div.innerHTML = '';
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const fg = isDark ? '#f2f2f7' : '#1a1a1a';
+      const VF = Vex.Flow;
+      const totalW = Math.min(320, window.innerWidth - 60);
+      const staveX = 10, staveW = totalW - 20;
+      const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+      renderer.resize(totalW, 120);
+      const context = renderer.getContext();
+      context.setFillStyle(fg);
+      context.setStrokeStyle(fg);
+      const stave = new VF.Stave(staveX, 20, staveW);
+      stave.addClef(note.clef);
+      stave.setContext(context).draw();
+      const staveNote = new VF.StaveNote({clef:note.clef,keys:[note.vex],duration:'q'});
+      const voice = new VF.Voice({num_beats:1,beat_value:4}).setStrict(false);
+      voice.addTickables([staveNote]);
+      const noteAreaW = staveW - 65;
+      new VF.Formatter().joinVoices([voice]).format([voice], noteAreaW);
+      staveNote.setXShift(noteAreaW / 2 - 10);
+      voice.draw(context, stave);
+      const svg = div.querySelector('svg');
+      if (svg && isDark) {
+        svg.querySelectorAll('path,rect,circle,line,ellipse,polyline,polygon').forEach(el=>{
+          if(el.getAttribute('fill')&&el.getAttribute('fill')!=='none')el.setAttribute('fill',fg);
+          if(el.getAttribute('stroke')&&el.getAttribute('stroke')!=='none')el.setAttribute('stroke',fg);
+        });
+        svg.querySelectorAll('text').forEach(el=>{el.style.fill=fg;});
+      }
+    }
+
+    function renderQuestion(){
+      const note=state.series[state.idx],answers=shuffleAnswers(note);
+      document.getElementById('progress-bar').style.width=((state.idx/SERIES)*100)+'%';
+      document.getElementById('main-area').innerHTML=`
+        <div class="clef-toggle">
+          <button id="btn-treble">Clau de Sol</button>
+          <button id="btn-bass">Clau de Fa</button>
+          <button id="btn-both">Totes dues</button>
+        </div>
+        <div class="card">
+          <div class="note-label">Nota ${state.idx+1} de ${SERIES} · ${note.clef==='treble'?'Clau de Sol':'Clau de Fa'}</div>
+          <div class="staff-wrap"><div id="vex-div"></div></div>
+          <div class="feedback" id="feedback"></div>
+          <div class="answer-grid">${answers.map(a=>`<button class="ans-btn" data-note="${a}">${a}</button>`).join('')}</div>
+          <div class="reset-notice" id="reset-notice"></div>
+        </div>`;
+      ['treble','bass','both'].forEach(m=>{const b=document.getElementById('btn-'+m);if(b){b.className=state.mode===m?'active':'';b.onclick=()=>{state.mode=m;resetGame();};}});
+      document.querySelectorAll('.ans-btn').forEach(btn=>btn.addEventListener('click',()=>handleAnswer(btn,note)));
+      setTimeout(()=>drawVex(note),50);
+    }
+
+    function handleAnswer(btn,note){
+      if(state.answered)return;state.answered=true;
+      const chosen=btn.dataset.note,fb=document.getElementById('feedback'),rn=document.getElementById('reset-notice');
+      if(chosen===note.display){
+        state.correct++;btn.classList.add('correct');fb.textContent='✓ Correcte!';fb.className='feedback ok';
+        document.getElementById('s-correct').textContent=state.correct;
+        setTimeout(()=>{state.idx++;state.answered=false;if(state.idx>=SERIES){stopTimer();renderResult();}else renderQuestion();},700);
+      }else{
+        state.wrong++;btn.classList.add('wrong');fb.textContent=`✗ Era ${note.display} (${note.name})`;fb.className='feedback ko';
+        document.querySelectorAll('.ans-btn').forEach(b=>{if(b.dataset.note===note.display)b.classList.add('correct');});
+        document.getElementById('s-wrong').textContent=state.wrong;
+        if(rn)rn.textContent='Error! La sèrie reinicia en 2 segons...';
+        setTimeout(()=>resetGame(true),2000);
+      }
+    }
+
+    function renderResult(){
+      stopTimer();
+      document.getElementById('progress-bar').style.width='100%';
+      const pct=Math.round((state.correct/SERIES)*100);
+      const emoji = pct===100?'🎉':pct>=70?'👍':'💪';
+      document.getElementById('main-area').innerHTML=`
+        <div class="result-box">
+          <div style="font-size:48px;margin-bottom:.5rem">${emoji}</div>
+          <h2>Sèrie completada!</h2>
+          <div class="result-stats">
+            <div class="stat"><div class="stat-label">Encerts</div><div class="stat-val green">${state.correct}</div></div>
+            <div class="stat"><div class="stat-label">Errors</div><div class="stat-val red">${state.wrong}</div></div>
+            <div class="stat"><div class="stat-label">Temps</div><div class="stat-val">${state.elapsed}s</div></div>
+          </div>
+          <div class="result-note">${pct}% d'encerts · ${(state.elapsed/SERIES).toFixed(1)}s per nota</div>
+          <button id="restart-btn">Nova sèrie</button>
+        </div>`;
+      document.getElementById('restart-btn').onclick=()=>resetGame();
+    }
+
+    function resetGame(keepWrong){
+      stopTimer();state.series=buildSeries();state.idx=0;state.correct=0;
+      if(!keepWrong)state.wrong=0;state.elapsed=0;state.answered=false;
+      document.getElementById('s-correct').textContent='0';
+      document.getElementById('s-wrong').textContent=state.wrong;
+      document.getElementById('s-time').textContent='0s';
+      document.getElementById('progress-bar').style.width='0%';
+      startTimer();renderQuestion();
+    }
+
+    // PWA install prompt
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.getElementById('install-banner');
+      if (banner) banner.style.display = 'flex';
+    });
+    document.getElementById('install-btn').onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('install-banner').style.display = 'none';
+    };
+    document.getElementById('dismiss-banner').onclick = () => {
+      document.getElementById('install-banner').style.display = 'none';
+    };
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    function init(){
+      if(typeof Vex!=='undefined'){resetGame();}
+      else{setTimeout(init,100);}
+    }
+    init();
+  </script>
+</body>
+</html>
